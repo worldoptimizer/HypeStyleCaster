@@ -119,7 +119,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 		HypeDocumentLoad(null, document.body, null)
 	});
 	
-	/* Reveal Public interface to window['HypeMissingSelectors'] */
+	/* Reveal Public interface to window['HypeDynamicStyles'] */
 	return {
 		version: '1.0',
 		styleToString: styleToString,
