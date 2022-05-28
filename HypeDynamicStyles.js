@@ -117,7 +117,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	window.HYPE_eventListeners.push({type: "HypeScenePrepareForDisplay", callback: HypeScenePrepareForDisplay});
 	
 	if (_isHypeIDE) document.addEventListener("DOMContentLoaded", function(){
-		HypeDocumentLoad(null, document.body, null)
+		HypeDocumentLoad({}, document.body, null)
 	});
 	
 	/* Reveal Public interface to window['HypeDynamicStyles'] */
