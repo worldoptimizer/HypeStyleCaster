@@ -82,26 +82,33 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 			attributeFilter: ['data-style']
 		});
 		
-		hypeDocument.refreshStyleActions = function(baseElm){
-			baseElm = baseElm || hypeDocument;
-			baseElm.querySelectorAll('[data-style-action]').forEach(function(elm){
-				var code = elm.getAttribute('data-style-action');
-				if (code) {
-					var style = hypeDocument.triggerAction ('return '+code, {
-						element: elm,
-						event: event
-					});
-					if (style) {
-						hypeDocument.setElementStyle(elm, style)
-					}
-				}
-			});
-		}
-		
+		/* exit here in IDE */
+		if (_isHypeIDE)  return;
+			
 		hypeDocument.setElementStyle = function(element, style){
 			if (!element || !style) return;
 			if (typeof style == 'object') style = styleToString(style);
 			element.setAttribute('data-style', style);
+		}
+			
+		/* extend if Hype Action Events is detected */
+		if ("HypeActionEvents" in window === true) {
+		
+			hypeDocument.refreshStyleActions = function(baseElm){
+				baseElm = baseElm || hypeDocument;
+				baseElm.querySelectorAll('[data-style-action]').forEach(function(elm){
+					var code = elm.getAttribute('data-style-action');
+					if (code) {
+						var style = hypeDocument.triggerAction ('return '+code, {
+							element: elm,
+							event: event
+						});
+						if (style) {
+							hypeDocument.setElementStyle(elm, style)
+						}
+					}
+				});
+			}
 		}
 	}
 	
