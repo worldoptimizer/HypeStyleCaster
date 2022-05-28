@@ -1,12 +1,12 @@
 /*!
-Hype Dynamic Styles 1.0.1
+Hype Dynamic Styles 1.0.2
 copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 */
 
 /*
 * Version-History
 * 1.0.0 Initial release under MIT-license
-* 1.0.1 Minimal fixes
+* 1.0.1 - 1.0.2 Minimal fixes
 */
 if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (function () {
 	/* @const */
@@ -122,7 +122,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	
 	/* Reveal Public interface to window['HypeDynamicStyles'] */
 	return {
-		version: '1.0.1',
+		version: '1.0.2',
 		styleToString: styleToString,
 	};
 })();
