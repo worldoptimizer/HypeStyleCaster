@@ -5,7 +5,7 @@ copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 
 /*
 * Version-History
-* 1.0 Initial release under MIT-license
+* 1.0.0 Initial release under MIT-license
 */
 if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (function () {
 	/* @const */
@@ -121,7 +121,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	
 	/* Reveal Public interface to window['HypeDynamicStyles'] */
 	return {
-		version: '1.0',
+		version: '1.0.0',
 		styleToString: styleToString,
 	};
 })();
