@@ -1,6 +1,6 @@
 # HypeDynamicStyles
 
-![HypeDynamicStyles|690x487](https://playground.maxziebell.de/Hype/HypeDynamicStyles/HypeDynamicStyles.jpg)
+![HypeDynamicStyles|690x487](https://playground.maxziebell.de/Hype/DynamicStyles/HypeDynamicStyles.jpg)
 
 Create inline styles or generate them using callbacks (using Hype Action Events)
 
