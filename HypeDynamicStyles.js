@@ -81,7 +81,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 			attributeFilter: ['data-style']
 		});
 		
-		hypeDocument.refreshStyles = function(baseElm){
+		hypeDocument.refreshStyleActions = function(baseElm){
 			baseElm = baseElm || hypeDocument;
 			baseElm.querySelectorAll('[data-style-action]').forEach(function(elm){
 				var code = elm.getAttribute('data-style-action');
@@ -106,8 +106,8 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	
 	/* add support for Hype Action Events if installed */
 	function HypeScenePrepareForDisplay(hypeDocument, element, event) {
-		if (HypeActionEvents) {
-			hypeDocument.refreshStyles();
+		if ("HypeActionEvents" in window === true) {
+			hypeDocument.refreshStyleActions();
 		}
 	}
 	
