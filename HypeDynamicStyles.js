@@ -1,5 +1,5 @@
 /*!
-Hype Dynamic Styles 1.0.2
+Hype Dynamic Styles 1.0.3
 copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 */
 
@@ -7,6 +7,9 @@ copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 * Version-History
 * 1.0.0 Initial release under MIT-license
 * 1.0.1 - 1.0.2 Minimal fixes
+* 1.0.3 Added data-style-var for mirroring mutations to CSS variables
+*       Added data-style-closest to define a closest selector to set these on
+*
 */
 if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (function () {
 	/* @const */
@@ -24,7 +27,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 		return !!div.style.length
 	}
 	
-	function addStyle(id, style) {
+	function insertStyle(id, style) {
 		if (/top|left|right|bottom/.test(style)) {
 			style = 'transform: none; ' + style;
 		}
@@ -41,7 +44,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	
 	function updateStyle(id, style) {
 		removeStyle(id);
-		addStyle(id, style);
+		insertStyle(id, style);
 	}
 	
 	function styleToString(style) {
@@ -50,7 +53,23 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 				return '-' + match.toLowerCase();
 			}) + ': ' + style[k] + ';';
 		}).join('');
-	}	
+	}
+	
+	function setStyle(id, style) {
+		if (style === null) {
+			removeStyle(id)
+			return;
+		}
+		try {
+			if (isValidCSS(style)) {
+				updateStyle(id, style);
+			} else {
+				removeStyle(id);
+			}
+		} catch (e) {
+			removeStyle(id)
+		}
+	}
 	
 	/* setup callbacks */
 	function HypeDocumentLoad(hypeDocument, element, event) {
@@ -59,29 +78,96 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 			mutations.forEach(function(mutation) {
 				var id = mutation.target.id;
 				var style = mutation.target.getAttribute('data-style');
-				if (style === null) {
-					removeStyle(id)
-					return;
-				}
-				try {
-					if (isValidCSS(style)) {
-						updateStyle(id, style);
-					} else {
-						removeStyle(id);
-					}
-				} catch (e) {
-					removeStyle(id)
-				}
+				setStyle(id, style);
 			});
 		});
 		
-		/* start observing */
+		/* start observing for data-style changes */
 		observer.observe(element, {
 			subtree: true,
 			attributes: true,
 			attributeFilter: ['data-style']
 		});
 		
+				
+		function removeStyleVariable(str, baseElm) {
+			baseElm = baseElm || element;
+			var elms = baseElm.querySelectorAll('*');
+			for (var i = 0; i < elms.length; i++) {
+				var elm = elms[i];
+				var styles = getComputedStyle(elm);
+				for (var j = 0; j < styles.length; j++) {
+					var style = styles[j];
+					if (style.startsWith('--' + str)) {
+						elm.style.removeProperty(style);
+					}
+				}
+			}
+		}
+
+		function updateVarsForElementOnBase(styleVariableName, elm, baseElm){
+			let closestSelector = elm.getAttribute('data-style-closest');
+			if (closestSelector) baseElm = elm.closest(closestSelector) || baseElm;
+			
+			const style = elm.style;
+			if (style.width) {
+				baseElm.style.setProperty('--' + styleVariableName + '-width', style.width);
+			}
+			if (style.height) {
+				baseElm.style.setProperty('--' + styleVariableName + '-height', style.height);
+			}
+			if (style.transform) {
+				const translate = style.transform;
+				const translateX = translate.match(/translateX\((\d+px)\)/i);
+				const translateY = translate.match(/translateY\((\d+px)\)/i);
+				const rotateY = style.transform.match(/rotateY\((\d+deg)\)/i);
+				if (translateX) {
+					baseElm.style.setProperty('--' + styleVariableName + '-left', translateX[1]);
+				}
+				if (translateY) {
+					baseElm.style.setProperty('--' + styleVariableName + '-top', translateY[1]);
+				}
+				if (rotateY) {
+					baseElm.style.setProperty('--' + styleVariableName + '-rotateY', rotateY[1]);
+				}
+			}
+		}
+		
+		function updateVars(mutations) {
+			mutations.forEach(mutation => {
+				const styleVariableName = mutation.target.getAttribute('data-style-var');
+				if(!styleVariableName) return;
+				if (mutation.oldValue && mutation.attributeName === 'data-style-closest') {
+					removeStyleVariable(styleVariableName);
+				}
+				updateVarsForElementOnBase(styleVariableName, mutation.target, element);
+			});
+		}
+		
+		function updateTree(mutations) {
+			element.querySelectorAll("[data-style-var]").forEach(elm => {
+				const styleVariableName = elm.getAttribute('data-style-var');
+				if(!styleVariableName) return;
+				/* refresh vars */
+				updateVarsForElementOnBase(styleVariableName, elm, element);
+				/* start observing for data-style-var and style changes */
+				observerVars.observe(elm, { 
+					attributes: true,
+					attributeOldValue: true,
+					attributeFilter: ["style", "data-style-var", "data-style-closest"]
+				});
+			});
+		}
+		
+		const observerVars = new MutationObserver(updateVars);
+		const observerTree = new MutationObserver(updateTree);
+		
+		/* start observing for tree updates */
+		observerTree.observe(element, { 
+			childList: true,
+			subtree: true
+		});
+
 		/* exit here in IDE */
 		if (_isHypeIDE)  return;
 			
@@ -93,7 +179,6 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 			
 		/* extend if Hype Action Events is detected */
 		if ("HypeActionEvents" in window === true) {
-		
 			hypeDocument.refreshStyleActions = function(baseElm){
 				baseElm = baseElm || hypeDocument;
 				baseElm.querySelectorAll('[data-style-action]').forEach(function(elm){
@@ -110,6 +195,11 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 				});
 			}
 		}
+		
+		/* expose to hypeDocument */
+		hypeDocument.removeStyleVariable = removeStyleVariable;
+		hypeDocument.setStyle = setStyle;
+		hypeDocument.removeStyle = removeStyle;
 	}
 	
 	/* add support for Hype Action Events if installed */
@@ -129,7 +219,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	
 	/* Reveal Public interface to window['HypeDynamicStyles'] */
 	return {
-		version: '1.0.2',
+		version: '1.0.3',
 		styleToString: styleToString,
 	};
 })();
