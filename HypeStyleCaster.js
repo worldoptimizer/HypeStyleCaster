@@ -30,7 +30,7 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 	};
 	
 	// defaults
-	const _default = {
+	let _default = {
 		allowStyleExpression: true,
 		allowStyleAction: true,	
 	}
