@@ -1,4 +1,4 @@
-# Hyope Style Caster
+# Hype Style Caster
 
 ![HypeStyleCaster|690x487](https://playground.maxziebell.de/Hype/StyleCaster/HypeStyleCaster.jpg)
 
