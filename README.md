@@ -2,7 +2,7 @@
 
 ![HypeStyleCaster|690x487](https://playground.maxziebell.de/Hype/StyleCaster/HypeStyleCaster.jpg)
 
-Create inline styles or generate them using callbacks (using Hype Action Events)
+Create and override inline styles or cast value changes to custom properties (CSS Vars)
 
 ## Documentation
 
