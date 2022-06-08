@@ -1,5 +1,5 @@
 /*!
-Hype Dynamic Styles 1.0.4
+Hype Style Caster 1.0.5
 copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 */
 
@@ -7,24 +7,68 @@ copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 * Version-History
 * 1.0.0 Initial release under MIT-license
 * 1.0.1 - 1.0.2 Minimal fixes
-* 1.0.3 Added data-style-var for mirroring mutations to CSS variables
-*       Added data-style-closest to define a closest selector to set these on
+* 1.0.3 Added data-cast-properties for mirroring mutations to CSS variables
+*       Added data-cast-target to define a closest selector to set these on
 * 1.0.4 Added monitoring and setting any value of style or transforms,
 *       Added the possibility to cast the values (int, float) and register new casting functions
+* 1.0.5 Refactored name to Hype Style Caster,
+        Refactored data-style to data-style-declaration
+		Refactored data-style-cast to data-cast-properties
+		Refactored data-cast-target to data-cast-to-closest
+		Added data-cast-to-target and data-cast-to-targets
+*
 *
 */
-if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (function () {
+if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function () {
 	/* @const */
 	const _isHypeIDE = window.location.href.indexOf("/Hype/Scratch/HypeScratch.") != -1;
 
 	const _castingHelper = {
 		int: parseInt,
-		float: parseFloat
+		float: parseFloat,
+		string: (value) => '"'+value+'"',
 	};
 	
+	// defaults
+	const _default = {
+		allowStyleExpression: true,
+		allowStyleAction: true,	
+	}
+	
+	/**
+	 * This function allows to override a global default by key or if a object is given as key to override all default at once
+	 *
+	 * @param {String} key This is the key to override
+	 * @param {String|Function|Object} value This is the value to set for the key
+	 */
+	 function setDefault(key, value){
+		//allow setting all defaults
+		if (typeof(key) == 'object') {
+			_default = key;
+			return;
+		}
+	
+		//set specific default
+		_default[key] = value;
+	}
+	
+	/**
+	 * This function returns the value of a default by key or all default if no key is given
+	 *
+	 * @param {String} key This the key of the default.
+	 * @return Returns the current value for a default with a certain key.
+	 */
+	function getDefault(key){
+		// return all defaults if no key is given
+		if (!key) return _default;
+	
+		// return specific default
+		return _default[key];
+	}
+
 		
 	/* create our sheet */	
-	const _sheet = createStyleSheet('hype-dynamic-styles');
+	const _sheet = createStyleSheet('hype-style-caster');
 
 	/**
 	 * Creates a style sheet with the given id and returns it.
@@ -208,12 +252,43 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	
 	/* setup callbacks */
 	function HypeDocumentLoad(hypeDocument, element, event) {
+		/* custom data */
+		if (_isHypeIDE && _default['customDataForPreview']){
+			hypeDocument.customData = Object.assign(hypeDocument.customData, _default['customDataForPreview'] ||  _default['customData'])
+		} else if (_default['customData']){
+			hypeDocument.customData = Object.assign(hypeDocument.customData, _default['customData'])
+		}
+		
 		/* mutation observer */
 		var observer = new MutationObserver(function(mutations) {
 			mutations.forEach(function(mutation) {
 				var id = mutation.target.id;
-				var style = mutation.target.getAttribute('data-style');
-				setStyle(id, style);
+				var ruleset = mutation.target.getAttribute('data-style-declaration') || ''; 
+				
+				if (_default['allowStyleExpression'])	{
+					var styleExpression = mutation.target.getAttribute('data-style-expression');
+					var styleExpressionReturn = '';
+					try {
+						styleExpressionReturn = new Function('customData', 'with(customData){ return ' + styleExpression + '}')(hypeDocument.customData);
+					} catch (e) {
+						// render error message
+						console.error(
+							"%c"+('Hype Style Caster Error')+
+							"%c"+(' version '+HypeStyleCaster.version)+"\n\n"+
+							"%c"+'return '+styleExpression+
+							"%c"+"\n\n"+e+"\n\n",
+							 "font-size:12px; font-weight:bold",
+							 "font-size:8px",
+							 "min-height:40px;display: inline-block; padding: 10px; background-color: rgba(255,255,255,0.25); border: 1px solid lightgray; border-radius: 4px; font-family:Monospace; font-size:12px",
+							 "font-size:11px",
+							 mutation.target,
+						);
+						
+					}
+					if (styleExpressionReturn) ruleset += ';'+styleExpressionReturn;
+				}
+				
+				setStyle(id, ruleset);
 			});
 		});
 		
@@ -221,7 +296,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 		observer.observe(element, {
 			subtree: true,
 			attributes: true,
-			attributeFilter: ['data-style']
+			attributeFilter: ['data-style-declaration', 'data-style-expression']
 		});
 		
 		/**
@@ -229,27 +304,38 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 		 *
 		 * @param {string} styleVariableName - The name of the CSS variable
 		 * @param {HTMLElement} elm - The element to be updated
-		 * @param {HTMLElement} baseElm - The element to be updated
 		 */
-		function updateVarsForElementOnBase(styleVariableName, elm, baseElm) {
-			let closestSelector = elm.getAttribute('data-style-closest');
-			if (closestSelector) baseElm = elm.closest(closestSelector) || baseElm;
+		function updateVarsForElementOnBase(styleVariableName, elm) {
+			let baseElm = element;
+			let closestSelector = elm.getAttribute('data-cast-to-closest');
+			if (!closestSelector) {
+				baseElm = elm.closest('.HYPE_document > .HYPE_scene') || baseElm;
+				let targetSelector = elm.getAttribute('data-cast-to-target');
+				if (targetSelector){
+					baseElm = baseElm.querySelector(targetSelector) || basElm;
+				}
+			} else {
+				baseElm = elm.closest(closestSelector) || baseElm;			
+			}
 			
 			const style = elm.style;
 			let props = styleVariableName.split(':');
 			styleVariableName = props[0];
 			props = props[1] ? props[1].split(',').map(prop => prop.trim()).filter(prop => prop.length) : ['width', 'height'];
 		
-			for (let prop of props) {
-				const cmdProp = resolveProp(prop);
-				if (style[cmdProp[1]]) {
-					
-					const value = resolveCastingFunction(cmdProp[0], style[cmdProp[1]]);
-					baseElm.style.setProperty('--' + styleVariableName + '-' + cmdProp[2], value);
-					props.splice(props.indexOf(prop), 1);
+			// cast styles
+			for (let i = 0; i < props.length; i++) {
+				const prop = props[i];
+				const cmdProp = resolveProp(prop);	
+				if (style[cmdProp[1]]) {		
+					const value = resolveCastingFunction(cmdProp[0], style[cmdProp[1]]);		
+					baseElm.style.setProperty('--' + styleVariableName + '-' + cmdProp[2], value);		
+					props.splice(i, 1);
+					i--;
 				}
 			}
 			
+			// cast remaining from styles.transform
 			if (style.transform) {					
 				for (let prop of props) {
 					const cmdProp = resolveProp(prop);
@@ -269,12 +355,12 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 		 */
 		function updateVars(mutations) {
 			mutations.forEach(mutation => {
-				const styleVariableName = mutation.target.getAttribute('data-style-var');
+				const styleVariableName = mutation.target.getAttribute('data-cast-properties');
 				if(!styleVariableName) return;
-				if (mutation.oldValue && mutation.attributeName === 'data-style-closest') {
+				if (mutation.oldValue && mutation.attributeName === 'data-cast-to-closest') {
 					removeStyleVariable(styleVariableName, element);
 				}
-				updateVarsForElementOnBase(styleVariableName, mutation.target, element);
+				updateVarsForElementOnBase(styleVariableName, mutation.target);
 			});
 		}
 		
@@ -284,16 +370,21 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 		 * @param {MutationRecord[]} mutations - The mutations to be observed
 		 */
 		function updateTree(mutations) {
-			element.querySelectorAll("[data-style-var]").forEach(elm => {
-				const styleVariableName = elm.getAttribute('data-style-var');
+			element.querySelectorAll('[data-cast-properties]').forEach(elm => {
+				const styleVariableName = elm.getAttribute('data-cast-properties');
 				if(!styleVariableName) return;
 				/* refresh vars */
-				updateVarsForElementOnBase(styleVariableName, elm, element);
-				/* start observing for data-style-var and style changes */
+				updateVarsForElementOnBase(styleVariableName, elm);
+				/* start observing for data-cast-properties and style changes */
 				observerVars.observe(elm, { 
 					attributes: true,
 					attributeOldValue: true,
-					attributeFilter: ["style", "data-style-var", "data-style-closest"]
+					attributeFilter: [
+						'style',
+						'data-cast-properties',
+						'data-cast-to-closest',
+						'data-cast-to-target',
+					]
 				});
 			});
 		}
@@ -319,14 +410,14 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 		hypeDocument.setElementStyle = function(element, style){
 			if (!element || !style) return;
 			if (typeof style == 'object') style = styleToString(style);
-			element.setAttribute('data-style', style);
+			element.setAttribute('data-style-declaration', style);
 		}
 			
 		/* 
 		Extend if Hype Action Events is detected to allow the use of 
 		actions to set the style of an element.
 		*/
-		if ("HypeActionEvents" in window === true) {
+		if (_default['allowStyleAction'] && 'HypeActionEvents' in window === true) {
 			hypeDocument.refreshStyleActions = function(baseElm){
 				baseElm = baseElm || hypeDocument;
 				baseElm.querySelectorAll('[data-style-action]').forEach(function(elm){
@@ -347,7 +438,7 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	
 	/* add support for Hype Action Events if installed */
 	function HypeScenePrepareForDisplay(hypeDocument, element, event) {
-		if ("HypeActionEvents" in window === true) {
+		if (_default['allowStyleAction'] && "HypeActionEvents" in window === true) {
 			hypeDocument.refreshStyleActions();
 		}
 	}
@@ -357,12 +448,19 @@ if("HypeDynamicStyles" in window === false) window['HypeMissingSelectors'] = (fu
 	window.HYPE_eventListeners.push({type: "HypeScenePrepareForDisplay", callback: HypeScenePrepareForDisplay});
 	
 	if (_isHypeIDE) document.addEventListener("DOMContentLoaded", function(){
-		HypeDocumentLoad({}, document.body, null)
+		HypeDocumentLoad({
+				customData:{}
+			}, 
+			document.body,
+			null
+		);
 	});
 	
-	/* Reveal Public interface to window['HypeDynamicStyles'] */
+	/* Reveal Public interface to window['HypeStyleCaster'] */
 	return {
-		version: '1.0.4',
+		version: '1.0.5',
+		setDefault: setDefault,
+		getDefault: getDefault,		
 		isValidCSS: isValidCSS,
 		styleToString: styleToString,
 		createStyleSheet: createStyleSheet,
