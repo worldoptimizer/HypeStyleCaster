@@ -1,9 +1,8 @@
 {
-    "name": "Hype DataMagic",
-    "description": "Allows you to easily add and handle data in your Hype documents (with live preview)",
+    "name": "Hype Style Caster",
+    "description": "Create and override inline styles or cast value changes to custom properties (CSS Vars)",
     "author": "Max Ziebell",
-    "main":	"HypeDataMagic.js",
+    "main":	"HypeStyleCaster.js",
     "license": "MIT",
-    "version": "1.3.4",
     "dependencies": {}
 }
