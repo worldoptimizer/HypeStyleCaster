@@ -15,7 +15,7 @@ copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
         Refactored data-style to data-style-declaration
 		Refactored data-style-cast to data-cast-properties
 		Refactored data-cast-target to data-cast-to-closest
-		Added data-cast-to-target and data-cast-to-targets
+		Added data-cast-to-target
 *
 *
 */
