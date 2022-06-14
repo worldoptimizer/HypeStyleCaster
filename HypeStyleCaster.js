@@ -1,5 +1,5 @@
 /*!
-Hype Style Caster 1.0.5
+Hype Style Caster 1.0.6
 copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 */
 
@@ -15,8 +15,8 @@ copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
         Refactored data-style to data-style-declaration
 		Refactored data-style-cast to data-cast-properties
 		Refactored data-cast-target to data-cast-to-closest
-		Added data-cast-to-target
-*
+		Added data-cast-to-target and data-cast-to-targets
+* 1.0.6 Fixed updateTree by storing it document specific in _local
 *
 */
 if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function () {
@@ -34,6 +34,9 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 		allowStyleExpression: true,
 		allowStyleAction: true,	
 	}
+	
+	/* lookup for document specific observer etc. */
+	let _lookup = {}
 	
 	/**
 	 * This function allows to override a global default by key or if a object is given as key to override all default at once
@@ -252,6 +255,9 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 	
 	/* setup callbacks */
 	function HypeDocumentLoad(hypeDocument, element, event) {
+		/* init local observer lookup */
+		let _local = _lookup[hypeDocument.documentId()] = {};
+		
 		/* custom data */
 		if (_isHypeIDE && _default['customDataForPreview']){
 			hypeDocument.customData = Object.assign(hypeDocument.customData, _default['customDataForPreview'] ||  _default['customData'])
@@ -260,7 +266,7 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 		}
 		
 		/* mutation observer */
-		var observer = new MutationObserver(function(mutations) {
+		_local.dataStyleObserver = new MutationObserver(function(mutations) {
 			mutations.forEach(function(mutation) {
 				var id = mutation.target.id;
 				var ruleset = mutation.target.getAttribute('data-style-declaration') || ''; 
@@ -293,7 +299,7 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 		});
 		
 		/* start observing for data-style changes */
-		observer.observe(element, {
+		_local.dataStyleObserver.observe(element, {
 			subtree: true,
 			attributes: true,
 			attributeFilter: ['data-style-declaration', 'data-style-expression']
@@ -327,7 +333,7 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 			for (let i = 0; i < props.length; i++) {
 				const prop = props[i];
 				const cmdProp = resolveProp(prop);	
-				if (style[cmdProp[1]]) {		
+				if (style[cmdProp[1]]) {	
 					const value = resolveCastingFunction(cmdProp[0], style[cmdProp[1]]);		
 					baseElm.style.setProperty('--' + styleVariableName + '-' + cmdProp[2], value);		
 					props.splice(i, 1);
@@ -369,14 +375,14 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 		 *
 		 * @param {MutationRecord[]} mutations - The mutations to be observed
 		 */
-		function updateTree(mutations) {
+		_local.updateTree = function(mutations) {
 			element.querySelectorAll('[data-cast-properties]').forEach(elm => {
 				const styleVariableName = elm.getAttribute('data-cast-properties');
 				if(!styleVariableName) return;
 				/* refresh vars */
 				updateVarsForElementOnBase(styleVariableName, elm);
 				/* start observing for data-cast-properties and style changes */
-				observerVars.observe(elm, { 
+				_local.dataCastObserver.observe(elm, { 
 					attributes: true,
 					attributeOldValue: true,
 					attributeFilter: [
@@ -389,11 +395,11 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 			});
 		}
 		
-		const observerVars = new MutationObserver(updateVars);
-		const observerTree = new MutationObserver(updateTree);
+		_local.dataCastObserver = new MutationObserver(updateVars);
+		_local.treeObserver = new MutationObserver(_local.updateTree);
 		
 		/* start observing for tree updates */
-		observerTree.observe(element, { 
+		_local.treeObserver.observe(element, { 
 			childList: true,
 			subtree: true
 		});
@@ -438,6 +444,8 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 	
 	/* add support for Hype Action Events if installed */
 	function HypeScenePrepareForDisplay(hypeDocument, element, event) {
+		let _local = _lookup[hypeDocument.documentId()];
+		_local.updateTree();
 		if (_default['allowStyleAction'] && "HypeActionEvents" in window === true) {
 			hypeDocument.refreshStyleActions();
 		}
@@ -449,7 +457,8 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 	
 	if (_isHypeIDE) document.addEventListener("DOMContentLoaded", function(){
 		HypeDocumentLoad({
-				customData:{}
+				customData:{},
+				documentId: () => 'ide',
 			}, 
 			document.body,
 			null
@@ -458,7 +467,7 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 	
 	/* Reveal Public interface to window['HypeStyleCaster'] */
 	return {
-		version: '1.0.5',
+		version: '1.0.6',
 		setDefault: setDefault,
 		getDefault: getDefault,		
 		isValidCSS: isValidCSS,
