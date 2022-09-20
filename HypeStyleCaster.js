@@ -1,5 +1,5 @@
 /*!
-Hype Style Caster 1.0.6
+Hype Style Caster 1.0.7
 copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 */
 
@@ -17,6 +17,8 @@ copyright (c) 2022 Max Ziebell, (https://maxziebell.de). MIT-license
 		Refactored data-cast-target to data-cast-to-closest
 		Added data-cast-to-target and data-cast-to-targets
 * 1.0.6 Fixed updateTree by storing it document specific in _local
+* 1.0.7 Allowing variable name additions that can be inherited, 
+*       Added the ability to set default properties
 *
 */
 if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function () {
@@ -32,7 +34,8 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 	// defaults
 	let _default = {
 		allowStyleExpression: true,
-		allowStyleAction: true,	
+		allowStyleAction: true,
+		castProperties: ['width', 'height'],
 	}
 	
 	/* lookup for document specific observer etc. */
@@ -326,8 +329,18 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 			
 			const style = elm.style;
 			let props = styleVariableName.split(':');
-			styleVariableName = props[0];
-			props = props[1] ? props[1].split(',').map(prop => prop.trim()).filter(prop => prop.length) : ['width', 'height'];
+			
+			// determine variable name for casting
+			let castName = props[0].trim();
+			let closestBasenameElm = elm.closest('[data-cast-basename]');
+			let castBaseName = closestBasenameElm? closestBasenameElm.getAttribute('data-cast-basename').trim() + (castName? '-': '') :'';
+			styleVariableName = castBaseName + castName;
+			
+			// abort without name
+			if(!styleVariableName) return;
+			
+			// determine property names for casting
+			props = props[1] ? props[1].split(',').map(prop => prop.trim()).filter(prop => prop.length) : _default['castProperties'];
 		
 			// cast styles
 			for (let i = 0; i < props.length; i++) {
@@ -403,7 +416,15 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 			childList: true,
 			subtree: true
 		});
-
+		
+		/* start observing for data-cast-basename changes */
+		_local.dataCastAttributeObserver = new MutationObserver(updateVars)
+		_local.dataCastAttributeObserver.observe(element, {
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['data-cast-basename']
+		});
+		
 		/* exit here in IDE */
 		if (_isHypeIDE)  return;
 		
@@ -467,7 +488,7 @@ if("HypeStyleCaster" in window === false) window['HypeStyleCaster'] = (function 
 	
 	/* Reveal Public interface to window['HypeStyleCaster'] */
 	return {
-		version: '1.0.6',
+		version: '1.0.7',
 		setDefault: setDefault,
 		getDefault: getDefault,		
 		isValidCSS: isValidCSS,
