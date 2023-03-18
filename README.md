@@ -60,8 +60,8 @@ The following table shows all the available hypeDocument commands:
 
 | Command                  | Function                                                  |
 | ------------------------ | --------------------------------------------------------- |
-| setElementStyle          | Sets the style of an element                              |
-| refreshStyleActions      | Refreshes the style actions for an element                |
+| hypeDocument.setElementStyle          | Sets the style of an element                              |
+| hypeDocument.refreshStyleActions      | Refreshes the style actions for an element                |
 
 ## HypeStyleCaster API
 
