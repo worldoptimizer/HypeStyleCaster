@@ -239,4 +239,61 @@ You can also cast values using built-in functions like `int` (parseInt) and `flo
 **[Download example7.hype.zip](https://playground.maxziebell.de/Hype/StyleCaster/example7.hype.zip) (23.5 KB)**
 **[Download example8.hype.zip](https://playground.maxziebell.de/Hype/StyleCaster/example8.hype.zip) (24 KB)**
 
+---
+
+# Creating and Using Custom Casting Functions with Hype Style Caster
+
+Hype Style Caster allows you to create custom casting functions to transform values when setting style properties. This can be useful for converting values, performing calculations, or creating more complex style transformations.
+
+## Registering a Custom Casting Function
+
+To create a custom casting function, use the `HypeStyleCaster.registerCastingFunction()` method. This method takes two arguments:
+
+1. The name of the casting function (a string)
+2. The casting function itself (a function that takes a single argument, the value to be transformed)
+
+Here's an example of registering a custom casting function called `double` that doubles the input value:
+
+```javascript
+HypeStyleCaster.registerCastingFunction('double', function(value) {
+    return parseInt(value) * 2;
+});
+```
+
+## Using a Custom Casting Function
+
+To use a custom casting function in your project, include it in the `data-cast-properties` attribute of an element. The syntax for using a custom casting function is:
+
+```
+(propertyName):(castFunctionName)propertyValue
+```
+
+For example, to use the `double` casting function we defined earlier to double the width of an element, you would use the following code:
+
+```html
+data-cast-properties="foo:(double)width"
+```
+
+This would in turn yield `--foo-width-double` as a CSS custom property, with the width value doubled.
+
+## Example: Converting Degrees to Pixels
+
+Let's say you want to create a custom casting function that converts degrees to pixels. First, register the custom casting function:
+
+```javascript
+HypeStyleCaster.registerCastingFunction('degToPx', function(value) {
+    return parseInt(value) + 'px';
+});
+```
+
+Next, use the custom casting function in the `data-cast-properties` attribute of an element:
+
+```html
+data-cast-properties="foo:(degToPx)width"
+```
+
+This would in turn yield `--foo-width-degToPx` as a CSS custom property, with the width value converted from degrees to pixels.
+
+By using custom casting functions in your Hype Style Caster projects, you can create more advanced styling transformations and ensure that your styles are always up to date and responsive to different conditions on your web pages.
+
 This guide should help you get started with using Hype Style Caster, from basic tasks to more advanced techniques. Happy styling!
