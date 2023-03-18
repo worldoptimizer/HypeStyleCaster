@@ -241,7 +241,7 @@ You can also cast values using built-in functions like `int` (parseInt) and `flo
 
 ---
 
-# Creating and Using Custom Casting Functions with Hype Style Caster
+# Creating and Using Custom Casting Functions
 
 Hype Style Caster allows you to create custom casting functions to transform values when setting style properties. This can be useful for converting values, performing calculations, or creating more complex style transformations.
 
